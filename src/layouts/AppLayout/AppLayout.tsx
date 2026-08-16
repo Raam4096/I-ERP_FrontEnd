@@ -1,0 +1,98 @@
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import { Box, Drawer, Fab, IconButton, Tooltip } from "@mui/material";
+import { Outlet, useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
+import { useResponsive } from "@/hooks/useResponsive";
+import { sessionCleared } from "@/redux/features/auth/authSlice";
+import { logoutRequest } from "@/redux/features/auth/authService";
+import { permissionsCleared } from "@/redux/features/permissions/permissionSlice";
+import { tenantCleared } from "@/redux/features/tenant/tenantSlice";
+import { mobileNavOpened, selectUi, sidebarToggled, toastShown } from "@/redux/features/ui/uiSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { Sidebar } from "../Sidebar/Sidebar";
+import { Topbar } from "../Topbar/Topbar";
+
+const EXPANDED_WIDTH = 248;
+const COLLAPSED_WIDTH = 80;
+
+export const AppLayout = () => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { isDesktop } = useResponsive();
+  const { sidebarCollapsed, mobileNavOpen } = useAppSelector(selectUi);
+  const sidebarWidth = sidebarCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
+
+  const signOut = async () => {
+    await logoutRequest();
+    dispatch(sessionCleared());
+    dispatch(permissionsCleared());
+    dispatch(tenantCleared());
+    navigate(ROUTES.login, { replace: true });
+  };
+
+  const sidebar = <Sidebar collapsed={isDesktop ? sidebarCollapsed : false} onSignOut={() => void signOut()} />;
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+      <Box
+        sx={{
+          width: { xs: 0, md: sidebarWidth },
+          flexShrink: 0,
+          transition: "width 180ms ease",
+          display: { xs: "none", md: "block" },
+        }}
+      >
+        <Box sx={{ position: "fixed", inset: 0, right: "auto", width: sidebarWidth }}>
+          {sidebar}
+          <IconButton
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() => dispatch(sidebarToggled())}
+            sx={{
+              position: "absolute",
+              top: 86,
+              right: -14,
+              width: 28,
+              height: 28,
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              "&:hover": { bgcolor: "primary.dark" },
+            }}
+          >
+            {sidebarCollapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+          </IconButton>
+        </Box>
+      </Box>
+
+      <Drawer
+        open={mobileNavOpen}
+        onClose={() => dispatch(mobileNavOpened(false))}
+        sx={{ display: { md: "none" } }}
+        PaperProps={{ sx: { width: EXPANDED_WIDTH } }}
+      >
+        {sidebar}
+      </Drawer>
+
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <Topbar onMenuClick={() => dispatch(mobileNavOpened(true))} />
+        <Box component="main" sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, md: 2.5 } }}>
+          <Outlet />
+        </Box>
+      </Box>
+
+      <Tooltip title="AI Assistant">
+        <Fab
+          color="primary"
+          aria-label="Open AI assistant"
+          onClick={() =>
+            dispatch(toastShown({ message: "AI Control Room is reserved for a later phase.", severity: "info" }))
+          }
+          sx={{ position: "fixed", right: 24, bottom: 24 }}
+        >
+          <SmartToyOutlinedIcon />
+        </Fab>
+      </Tooltip>
+    </Box>
+  );
+};
