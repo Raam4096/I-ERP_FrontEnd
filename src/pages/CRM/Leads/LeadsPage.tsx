@@ -120,7 +120,6 @@ export const LeadsPage = () => {
   const beginInlineEdit = (row: Lead) => {
     setEditingId(row.id);
     setDraft({ ...row });
-    setMenuAnchor(null);
   };
 
   const cancelInlineEdit = () => {
