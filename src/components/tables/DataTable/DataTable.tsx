@@ -139,13 +139,13 @@ export const DataTable = <T,>({
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <Box className="ierp-row-actions" sx={{ display: "inline-flex" }}>
+        <Box className="ierp-row-actions" sx={{ display: "inline-flex", justifyContent: "flex-end", width: "100%" }}>
           {rowActions?.(row.original)}
         </Box>
       ),
       enableSorting: false,
-      size: 128,
-      minSize: 88,
+      size: variant === "cards" ? 172 : 128,
+      minSize: variant === "cards" ? 148 : 88,
     };
 
     return [
@@ -153,7 +153,7 @@ export const DataTable = <T,>({
       ...columns,
       ...(rowActions ? [actionColumn] : []),
     ];
-  }, [columns, enableSelection, rowActions]);
+  }, [columns, enableSelection, rowActions, variant]);
 
   const columnVisibility: VisibilityState = {};
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
@@ -190,19 +190,39 @@ export const DataTable = <T,>({
 
   const rowSx = revealActionsOnHover
     ? {
-        "& .ierp-row-actions": {
+        "& .ierp-row-actions-expanded": {
           opacity: 0,
+          pointerEvents: "none",
           transition: "opacity 140ms ease",
         },
-        "&:hover .ierp-row-actions, &:focus-within .ierp-row-actions": {
+        "& .ierp-row-actions-compact": {
           opacity: 1,
+          transition: "opacity 140ms ease",
         },
-        "&.ierp-row-actions-visible .ierp-row-actions": {
+        "&:hover .ierp-row-actions-expanded, &:focus-within .ierp-row-actions-expanded": {
           opacity: 1,
+          pointerEvents: "auto",
+        },
+        "&:hover .ierp-row-actions-compact, &:focus-within .ierp-row-actions-compact": {
+          opacity: 0,
+          pointerEvents: "none",
+        },
+        "&.ierp-row-actions-visible .ierp-row-actions-expanded": {
+          opacity: 1,
+          pointerEvents: "auto",
+        },
+        "&.ierp-row-actions-visible .ierp-row-actions-compact": {
+          opacity: 0,
+          pointerEvents: "none",
         },
         "@media (hover: none)": {
-          "& .ierp-row-actions": {
+          "& .ierp-row-actions-expanded": {
             opacity: 1,
+            pointerEvents: "auto",
+          },
+          "& .ierp-row-actions-compact": {
+            opacity: 0,
+            pointerEvents: "none",
           },
         },
       }
@@ -251,29 +271,32 @@ export const DataTable = <T,>({
               ...(isCards
                 ? {
                     borderCollapse: "separate",
-                    borderSpacing: "0 10px",
+                    borderSpacing: "0 12px",
                     "& .MuiTableHead-root .MuiTableCell-root": {
                       backgroundColor: "transparent",
                       borderBottom: 0,
-                      pb: 0,
+                      pb: 0.5,
                     },
                     "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root": {
                       borderBottom: 0,
                       backgroundColor: theme.palette.chrome.input,
-                      py: 1.75,
+                      py: 2.25,
                     },
                     "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root:first-of-type": {
-                      borderTopLeftRadius: 12,
-                      borderBottomLeftRadius: 12,
+                      borderTopLeftRadius: 16,
+                      borderBottomLeftRadius: 16,
                       boxShadow: `inset 1px 0 0 ${theme.palette.divider}, inset 0 1px 0 ${theme.palette.divider}, inset 0 -1px 0 ${theme.palette.divider}`,
                     },
                     "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root:last-of-type": {
-                      borderTopRightRadius: 12,
-                      borderBottomRightRadius: 12,
+                      borderTopRightRadius: 16,
+                      borderBottomRightRadius: 16,
                       boxShadow: `inset -1px 0 0 ${theme.palette.divider}, inset 0 1px 0 ${theme.palette.divider}, inset 0 -1px 0 ${theme.palette.divider}`,
                     },
                     "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root:not(:first-of-type):not(:last-of-type)": {
                       boxShadow: `inset 0 1px 0 ${theme.palette.divider}, inset 0 -1px 0 ${theme.palette.divider}`,
+                    },
+                    "& .MuiTableBody-root .MuiTableRow-root:hover .MuiTableCell-root": {
+                      backgroundColor: theme.palette.chrome.hover,
                     },
                   }
                 : {}),
@@ -421,15 +444,16 @@ export const DataTable = <T,>({
 
 const bodyCellSx = (width: number, columnId: string) => {
   const isSelect = columnId === "select";
+  const isActions = columnId === "actions";
   return {
     width,
     minWidth: width,
     maxWidth: width,
-    overflow: isSelect ? "visible" : "hidden",
+    overflow: isSelect || isActions ? "visible" : "hidden",
     textOverflow: "ellipsis",
-    whiteSpace: isSelect ? "normal" : "nowrap",
+    whiteSpace: isSelect || isActions ? "normal" : "nowrap",
     px: isSelect ? 1 : 1.5,
-    textAlign: isSelect ? ("center" as const) : ("left" as const),
+    textAlign: isSelect ? ("center" as const) : isActions ? ("right" as const) : ("left" as const),
     "& .MuiTextField-root": {
       whiteSpace: "normal",
     },

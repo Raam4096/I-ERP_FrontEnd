@@ -16,6 +16,7 @@ export const FilterPanel = ({ children, onClear }: FilterPanelProps) => {
         variant="outlined"
         startIcon={<FilterListIcon />}
         onClick={(event) => setAnchor(event.currentTarget)}
+        sx={{ borderRadius: 2, letterSpacing: "0.08em" }}
       >
         FILTER
       </Button>

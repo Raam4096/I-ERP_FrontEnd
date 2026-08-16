@@ -8,10 +8,10 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import { Button, IconButton, LinearProgress, Menu, MenuItem, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Button, IconButton, LinearProgress, Stack, Tooltip, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HighValueLeadCard } from "@/components/cards/HighValueLeadCard/HighValueLeadCard";
 import { KpiCard } from "@/components/cards/KpiCard/KpiCard";
@@ -19,7 +19,6 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog/ConfirmDialog";
 import { FilterPanel } from "@/components/common/FilterPanel/FilterPanel";
 import { PermissionGate } from "@/components/common/PermissionGate/PermissionGate";
 import { PageHeader } from "@/components/common/PageHeader/PageHeader";
-import { StatusChip } from "@/components/common/StatusChip/StatusChip";
 import { SelectField } from "@/components/forms/fields";
 import { DataTable } from "@/components/tables/DataTable/DataTable";
 import { PERMISSIONS } from "@/constants/permissions";
@@ -27,7 +26,7 @@ import { ROUTES } from "@/constants/routes";
 import { LEAD_STATUSES, type LeadStatus } from "@/constants/statuses";
 import { useTableState } from "@/hooks/useTableState";
 import type { Lead } from "@/models/lead/lead";
-import { resolveAiNextAction, resolveLeadConfidence } from "@/models/lead/lead";
+import { formatLeadDisplayId, resolveAiNextAction, resolveLeadConfidence } from "@/models/lead/lead";
 import type { KpiMetric } from "@/models/dashboard/dashboard";
 import { toastShown } from "@/redux/features/ui/uiSlice";
 import { useAppDispatch } from "@/redux/hooks";
@@ -48,7 +47,7 @@ const buildKpis = (items: Lead[]): KpiMetric[] => {
       value: snapshot.averageScore.toFixed(1),
       icon: "trend",
       trendPercent: 8,
-      trendLabel: "+8pts",
+      trendLabel: "+5pts",
     },
   ];
 };
@@ -67,7 +66,6 @@ export const LeadsPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Lead | null>(null);
   const [saving, setSaving] = useState(false);
-  const [menuAnchor, setMenuAnchor] = useState<{ element: HTMLElement; row: Lead } | null>(null);
 
   const sorting = useMemo<SortingState>(
     () =>
@@ -167,7 +165,17 @@ export const LeadsPage = () => {
 
   const columns = useMemo<ColumnDef<Lead>[]>(
     () => [
-      { accessorKey: "leadId", header: "Lead ID", size: 104, minSize: 88 },
+      {
+        accessorKey: "leadId",
+        header: "Lead ID",
+        size: 100,
+        minSize: 88,
+        cell: ({ getValue }) => (
+          <Typography variant="body2" sx={{ fontWeight: 800 }}>
+            {formatLeadDisplayId(String(getValue()))}
+          </Typography>
+        ),
+      },
       {
         accessorKey: "leadName",
         header: "Lead Name",
@@ -181,7 +189,9 @@ export const LeadsPage = () => {
               onChange={(value) => patchDraft("leadName", value)}
             />
           ) : (
-            String(getValue())
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {String(getValue())}
+            </Typography>
           ),
       },
       {
@@ -231,7 +241,7 @@ export const LeadsPage = () => {
               options={leadStatusOptions}
             />
           ) : (
-            <StatusChip label={String(getValue())} />
+            String(getValue())
           ),
       },
       {
@@ -261,20 +271,19 @@ export const LeadsPage = () => {
           const value = Number(getValue());
           return (
             <Stack direction="row" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
-              <Typography variant="body2" sx={{ minWidth: 36 }}>
-                {value}%
-              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={value}
                 sx={{
-                  flex: 1,
+                  width: 56,
+                  flexShrink: 0,
                   height: 4,
                   "& .MuiLinearProgress-bar": {
                     bgcolor: value >= 80 ? "success.main" : "warning.main",
                   },
                 }}
               />
+              <Typography variant="body2">{value}%</Typography>
             </Stack>
           );
         },
@@ -292,10 +301,12 @@ export const LeadsPage = () => {
             startIcon={<BoltIcon fontSize="small" />}
             onClick={() => announceAction(String(getValue()), row.original)}
             sx={{
+              borderRadius: 999,
               borderColor: "primary.main",
               color: "primary.light",
               letterSpacing: "0.06em",
               whiteSpace: "nowrap",
+              px: 1.5,
             }}
           >
             {String(getValue())}
@@ -309,7 +320,7 @@ export const LeadsPage = () => {
   return (
     <Stack gap={2.25}>
       <PageHeader
-        eyebrow="Terminal > CRM & Customer Engagement"
+        eyebrow="Terminal › CRM & Customer Engagement"
         title="Lead Management"
         uppercase
         actions={
@@ -340,7 +351,7 @@ export const LeadsPage = () => {
         }
       />
 
-      <Stack
+      <Box
         sx={{
           display: "grid",
           gap: 1.5,
@@ -350,14 +361,16 @@ export const LeadsPage = () => {
         {kpis.map((metric) => (
           <KpiCard key={metric.id} metric={metric} />
         ))}
-      </Stack>
+      </Box>
 
       {featuredLead ? (
-        <HighValueLeadCard
-          leadName={featuredLead.leadName}
-          leadScore={featuredLead.leadScore}
-          onStart={() => announceAction("START ENGAGEMENT", featuredLead)}
-        />
+        <Box sx={{ width: { xs: "100%", md: "66%" }, maxWidth: 720 }}>
+          <HighValueLeadCard
+            leadName={featuredLead.leadName}
+            leadScore={featuredLead.leadScore}
+            onStart={() => announceAction("START ENGAGEMENT", featuredLead)}
+          />
+        </Box>
       ) : null}
 
       <DataTable
@@ -372,7 +385,7 @@ export const LeadsPage = () => {
         error={error}
         variant="cards"
         paginationStyle="count"
-        revealActionsOnHover={false}
+        revealActionsOnHover
         alwaysRevealActions={(row) => row.id === editingId}
         searchPlaceholder="Search records..."
         onSearchChange={tableState.setSearch}
@@ -427,73 +440,58 @@ export const LeadsPage = () => {
               </Tooltip>
             </Stack>
           ) : (
-            <Tooltip title="Row actions">
-              <IconButton
-                aria-label={`Actions for ${row.leadId}`}
-                size="small"
-                onClick={(event: MouseEvent<HTMLElement>) => setMenuAnchor({ element: event.currentTarget, row })}
+            <Box sx={{ position: "relative", minWidth: 148, minHeight: 36, display: "flex", justifyContent: "flex-end" }}>
+              <Box className="ierp-row-actions-compact">
+                <IconButton aria-label={`Actions for ${row.leadId}`} size="small">
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              <Stack
+                className="ierp-row-actions-expanded"
+                direction="row"
+                sx={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)" }}
               >
-                <MoreVertIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+                <Tooltip title="View">
+                  <IconButton
+                    aria-label={`View ${row.leadId}`}
+                    size="small"
+                    onClick={() => navigate(ROUTES.crm.leadView(row.id))}
+                  >
+                    <VisibilityOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <PermissionGate permission={PERMISSIONS.crm.leads.update}>
+                  <Tooltip title="Edit inline">
+                    <IconButton aria-label={`Edit ${row.leadId}`} size="small" onClick={() => beginInlineEdit(row)}>
+                      <EditOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </PermissionGate>
+                <PermissionGate permission={PERMISSIONS.crm.leads.print}>
+                  <Tooltip title="Print">
+                    <IconButton
+                      aria-label={`Print ${row.leadId}`}
+                      size="small"
+                      onClick={() =>
+                        dispatch(toastShown({ message: "Print engine is reserved for a later phase.", severity: "info" }))
+                      }
+                    >
+                      <PrintOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </PermissionGate>
+                <PermissionGate permission={PERMISSIONS.crm.leads.delete}>
+                  <Tooltip title="Delete">
+                    <IconButton aria-label={`Delete ${row.leadId}`} size="small" onClick={() => setPendingDelete(row)}>
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </PermissionGate>
+              </Stack>
+            </Box>
           )
         }
       />
-
-      <Menu
-        anchorEl={menuAnchor?.element}
-        open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <MenuItem
-          onClick={() => {
-            if (menuAnchor) {
-              navigate(ROUTES.crm.leadView(menuAnchor.row.id));
-            }
-          }}
-        >
-          <VisibilityOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-          View
-        </MenuItem>
-        <PermissionGate permission={PERMISSIONS.crm.leads.update}>
-          <MenuItem
-            onClick={() => {
-              if (menuAnchor) {
-                beginInlineEdit(menuAnchor.row);
-              }
-            }}
-          >
-            <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-            Edit inline
-          </MenuItem>
-        </PermissionGate>
-        <PermissionGate permission={PERMISSIONS.crm.leads.print}>
-          <MenuItem
-            onClick={() => {
-              setMenuAnchor(null);
-              dispatch(toastShown({ message: "Print engine is reserved for a later phase.", severity: "info" }));
-            }}
-          >
-            <PrintOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-            Print
-          </MenuItem>
-        </PermissionGate>
-        <PermissionGate permission={PERMISSIONS.crm.leads.delete}>
-          <MenuItem
-            onClick={() => {
-              if (menuAnchor) {
-                setPendingDelete(menuAnchor.row);
-                setMenuAnchor(null);
-              }
-            }}
-          >
-            <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} />
-            Delete
-          </MenuItem>
-        </PermissionGate>
-      </Menu>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}

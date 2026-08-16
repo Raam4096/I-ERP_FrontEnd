@@ -6,6 +6,7 @@ interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   fullWidth?: boolean;
+  pill?: boolean;
 }
 
 export const SearchInput = ({
@@ -13,12 +14,14 @@ export const SearchInput = ({
   onChange,
   placeholder = "Search records…",
   fullWidth = true,
+  pill = false,
 }: SearchInputProps) => (
   <TextField
     value={value}
     onChange={(event) => onChange(event.target.value)}
     placeholder={placeholder}
     fullWidth={fullWidth}
+    sx={pill ? { "& .MuiOutlinedInput-root": { borderRadius: 999 } } : undefined}
     slotProps={{
       input: {
         startAdornment: (

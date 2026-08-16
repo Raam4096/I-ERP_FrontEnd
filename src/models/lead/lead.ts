@@ -51,6 +51,11 @@ export interface LeadDraft {
 export const resolveLeadConfidence = (score: number, status: LeadStatus): number =>
   Math.min(99, Math.max(20, score + (status === "Qualified" ? 4 : status === "Disqualified" ? -8 : 0)));
 
+export const formatLeadDisplayId = (leadId: string): string => {
+  const digits = leadId.replace(/\D/g, "").slice(-3);
+  return `LID-${digits.padStart(3, "0")}`;
+};
+
 export const resolveAiNextAction = (score: number): string => {
   if (score >= 80) {
     return "START ENGAGEMENT";

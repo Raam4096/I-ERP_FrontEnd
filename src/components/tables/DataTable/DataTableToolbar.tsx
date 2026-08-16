@@ -29,8 +29,8 @@ export const DataTableToolbar = ({
     sx={{ mb: 2 }}
   >
     <BoxCopy title={title} subtitle={subtitle} />
-    <Box sx={{ flex: 1, maxWidth: { md: 360 } }}>
-      <SearchInput value={search} onChange={onSearchChange} placeholder={searchPlaceholder} />
+    <Box sx={{ flex: 1, maxWidth: { md: 420 } }}>
+      <SearchInput value={search} onChange={onSearchChange} placeholder={searchPlaceholder} pill />
     </Box>
     <Stack direction="row" gap={1} alignItems="center" sx={{ ml: { md: "auto" } }}>
       {filters}

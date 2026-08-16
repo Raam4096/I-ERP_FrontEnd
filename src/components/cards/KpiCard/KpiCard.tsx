@@ -32,14 +32,14 @@ export const KpiCard = ({ metric }: KpiCardProps) => {
 
   if (Icon) {
     return (
-      <Card sx={{ height: "100%" }}>
-        <CardContent sx={{ p: 2.25, "&:last-child": { pb: 2.25 } }}>
+      <Card sx={{ height: "100%", borderRadius: 2.5 }}>
+        <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
           <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1}>
             <Box
               sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1.5,
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
                 bgcolor: "chrome.hover",
                 color: "primary.light",
                 display: "grid",
@@ -56,15 +56,20 @@ export const KpiCard = ({ metric }: KpiCardProps) => {
                 sx={{
                   bgcolor: "success.main",
                   color: "primary.contrastText",
+                  height: 22,
                   "& .MuiChip-icon": { color: "inherit" },
                 }}
               />
             ) : null}
           </Stack>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 2, letterSpacing: "0.12em" }}
+          >
             {metric.label.toUpperCase()}
           </Typography>
-          <Typography variant="h2" sx={{ mt: 0.5 }}>
+          <Typography variant="h1" sx={{ mt: 0.75, fontSize: "2rem" }}>
             {metric.value}
           </Typography>
         </CardContent>

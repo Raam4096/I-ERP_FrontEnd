@@ -38,7 +38,11 @@ export const DataTablePagination = ({
         <Button variant="outlined" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
           PREV
         </Button>
-        <Button variant="outlined" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        <Button
+          variant={page < totalPages ? "contained" : "outlined"}
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
           NEXT
         </Button>
       </Stack>
