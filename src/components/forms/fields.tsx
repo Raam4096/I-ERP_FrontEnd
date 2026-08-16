@@ -1,17 +1,26 @@
+import AddIcon from "@mui/icons-material/Add";
 import {
+  Box,
+  Button,
   Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   FormHelperText,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   Switch,
   TextField,
+  Tooltip,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material/Select";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 interface BaseFieldProps {
   label: string;
@@ -57,6 +66,7 @@ export const TextFieldControl = ({
     minRows={minRows}
     type={type}
     fullWidth
+    slotProps={type === "date" ? { inputLabel: { shrink: true } } : undefined}
   />
 );
 
@@ -64,6 +74,8 @@ interface SelectFieldProps extends BaseFieldProps {
   value: string;
   onChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
+  includeEmpty?: boolean;
+  emptyLabel?: string;
 }
 
 export const SelectField = ({
@@ -75,26 +87,168 @@ export const SelectField = ({
   required,
   disabled,
   error,
-}: SelectFieldProps) => (
-  <FormControl fullWidth size="small" required={required} disabled={disabled} error={Boolean(error)}>
-    <InputLabel id={`${name}-label`}>{label}</InputLabel>
-    <Select
-      labelId={`${name}-label`}
-      name={name}
-      label={label}
-      value={value}
-      displayEmpty
-      onChange={(event: SelectChangeEvent<string>) => onChange(event.target.value)}
+  includeEmpty,
+  emptyLabel = "Select",
+}: SelectFieldProps) => {
+  const hasEmptyOption = Boolean(includeEmpty) || options.some((option) => option.value === "");
+  const shrink = Boolean(value) || hasEmptyOption;
+
+  return (
+    <FormControl fullWidth size="small" required={required} disabled={disabled} error={Boolean(error)}>
+      <InputLabel id={`${name}-label`} shrink={shrink}>
+        {label}
+      </InputLabel>
+      <Select
+        labelId={`${name}-label`}
+        name={name}
+        label={label}
+        value={value}
+        displayEmpty={hasEmptyOption}
+        notched={shrink}
+        onChange={(event: SelectChangeEvent<string>) => onChange(event.target.value)}
+        renderValue={(selected) => {
+          const match = options.find((option) => option.value === selected)?.label;
+          if (match) {
+            return match;
+          }
+          if (hasEmptyOption) {
+            return (
+              <Box component="span" sx={{ color: "text.disabled" }}>
+                {emptyLabel}
+              </Box>
+            );
+          }
+          return "";
+        }}
+      >
+        {includeEmpty ? (
+          <MenuItem value="">
+            <em>{emptyLabel}</em>
+          </MenuItem>
+        ) : null}
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+      {error ? <FormHelperText>{error}</FormHelperText> : null}
+    </FormControl>
+  );
+};
+
+interface CreatableSelectFieldProps extends SelectFieldProps {
+  onCreateOption: (value: string) => void;
+  createTitle?: string;
+}
+
+export const CreatableSelectField = ({
+  onCreateOption,
+  createTitle = "Add option",
+  ...selectProps
+}: CreatableSelectFieldProps) => {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [createError, setCreateError] = useState<string | undefined>();
+
+  const commit = () => {
+    const next = draft.trim();
+    if (!next) {
+      setCreateError("Enter a name to add.");
+      return;
+    }
+    const exists = selectProps.options.some(
+      (option) => option.value.toLowerCase() === next.toLowerCase() || option.label.toLowerCase() === next.toLowerCase(),
+    );
+    if (exists) {
+      setCreateError("That option already exists.");
+      return;
+    }
+    onCreateOption(next);
+    setDraft("");
+    setCreateError(undefined);
+    setOpen(false);
+  };
+
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        "&:hover .ierp-create-option, &:focus-within .ierp-create-option": {
+          opacity: 1,
+        },
+      }}
     >
-      {options.map((option) => (
-        <MenuItem key={option.value} value={option.value}>
-          {option.label}
-        </MenuItem>
-      ))}
-    </Select>
-    {error ? <FormHelperText>{error}</FormHelperText> : null}
-  </FormControl>
-);
+      <SelectField {...selectProps} includeEmpty={selectProps.includeEmpty ?? true} />
+      <Tooltip title={createTitle}>
+        <IconButton
+          className="ierp-create-option"
+          aria-label={createTitle}
+          size="small"
+          onClick={() => setOpen(true)}
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 36,
+            opacity: 0,
+            transition: "opacity 140ms ease",
+            bgcolor: "background.paper",
+            border: 1,
+            borderColor: "divider",
+            width: 24,
+            height: 24,
+            "&:hover": {
+              bgcolor: "chrome.hover",
+            },
+            "@media (hover: none)": {
+              opacity: 1,
+            },
+          }}
+        >
+          <AddIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Tooltip>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{createTitle}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Name"
+            value={draft}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setCreateError(undefined);
+            }}
+            error={Boolean(createError)}
+            helperText={createError}
+            sx={{ mt: 1 }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commit();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setOpen(false);
+              setDraft("");
+              setCreateError(undefined);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={commit}>
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
 
 interface BooleanFieldProps extends BaseFieldProps {
   value: boolean;

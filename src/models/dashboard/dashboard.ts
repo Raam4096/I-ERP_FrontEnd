@@ -1,3 +1,5 @@
+export type KpiIconKey = "people" | "check" | "trend";
+
 export interface KpiMetric {
   id: string;
   label: string;
@@ -5,6 +7,7 @@ export interface KpiMetric {
   hint?: string;
   trendPercent?: number;
   trendLabel?: string;
+  icon?: KpiIconKey;
   tone?: "default" | "success" | "warning" | "error";
 }
 

@@ -8,11 +8,15 @@ export const ROUTES = {
   aiAssistant: "/ai-assistant",
   crm: {
     root: "/crm",
+    missionControl: "/crm/mission-control",
     leads: "/crm/leads",
     leadNew: "/crm/leads/new",
     leadView: (id: string) => `/crm/leads/${id}`,
     leadEdit: (id: string) => `/crm/leads/${id}/edit`,
+    contacts: "/crm/contacts",
     opportunities: "/crm/opportunities",
+    activities: "/crm/activities",
+    campaigns: "/crm/campaigns",
   },
   sales: {
     root: "/sales",

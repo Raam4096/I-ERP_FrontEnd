@@ -1,14 +1,19 @@
 import AddIcon from "@mui/icons-material/Add";
+import BoltIcon from "@mui/icons-material/Bolt";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import { Button, IconButton, Stack, Tooltip } from "@mui/material";
+import { Button, IconButton, LinearProgress, Menu, MenuItem, Stack, Tooltip, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { HighValueLeadCard } from "@/components/cards/HighValueLeadCard/HighValueLeadCard";
 import { KpiCard } from "@/components/cards/KpiCard/KpiCard";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog/ConfirmDialog";
 import { FilterPanel } from "@/components/common/FilterPanel/FilterPanel";
@@ -22,15 +27,31 @@ import { ROUTES } from "@/constants/routes";
 import { LEAD_STATUSES, type LeadStatus } from "@/constants/statuses";
 import { useTableState } from "@/hooks/useTableState";
 import type { Lead } from "@/models/lead/lead";
+import { resolveAiNextAction, resolveLeadConfidence } from "@/models/lead/lead";
 import type { KpiMetric } from "@/models/dashboard/dashboard";
 import { toastShown } from "@/redux/features/ui/uiSlice";
 import { useAppDispatch } from "@/redux/hooks";
-import { formatDate } from "@/utils/formatters";
 import { getErrorMessage } from "@/utils/errorHandling/getErrorMessage";
 import { isBlank, isValidEmail } from "@/utils/validators/required";
 import { InlineSelectField, InlineTextField } from "./InlineLeadField";
-import { leadAssigneeOptions, leadSourceOptions, leadStatusOptions } from "./leadOptions";
+import { leadSourceOptions, leadStatusOptions } from "./leadOptions";
 import { deleteLead, getAllMockLeads, getLeadKpis, listLeads, saveLead } from "./leadsApi";
+
+const buildKpis = (items: Lead[]): KpiMetric[] => {
+  const snapshot = getLeadKpis(items);
+  return [
+    { id: "total", label: "Total Leads", value: String(snapshot.total), icon: "people", trendPercent: 24, trendLabel: "+24%" },
+    { id: "qualified", label: "Qualified", value: String(snapshot.qualified), icon: "check", trendPercent: 8, trendLabel: "+8%" },
+    {
+      id: "score",
+      label: "Avg Lead Score",
+      value: snapshot.averageScore.toFixed(1),
+      icon: "trend",
+      trendPercent: 8,
+      trendLabel: "+8pts",
+    },
+  ];
+};
 
 export const LeadsPage = () => {
   const navigate = useNavigate();
@@ -46,6 +67,7 @@ export const LeadsPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Lead | null>(null);
   const [saving, setSaving] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<{ element: HTMLElement; row: Lead } | null>(null);
 
   const sorting = useMemo<SortingState>(
     () =>
@@ -67,23 +89,7 @@ export const LeadsPage = () => {
       });
       setRows(result.data);
       setTotal(result.pagination.total);
-      const snapshot = getLeadKpis(getAllMockLeads());
-      setKpis([
-        { id: "total", label: "Total Leads", value: String(snapshot.total), hint: "Active local dataset" },
-        { id: "qualified", label: "Qualified Leads", value: String(snapshot.qualified), hint: "Status = Qualified" },
-        {
-          id: "disqualified",
-          label: "Disqualified Leads",
-          value: String(snapshot.disqualified),
-          hint: "Status = Disqualified",
-        },
-        {
-          id: "score",
-          label: "Average Lead Score",
-          value: snapshot.averageScore.toFixed(1),
-          hint: "Across all leads",
-        },
-      ]);
+      setKpis(buildKpis(getAllMockLeads()));
     } catch (cause) {
       setError(getErrorMessage(cause));
     } finally {
@@ -95,13 +101,28 @@ export const LeadsPage = () => {
     void load();
   }, [load]);
 
+  const featuredLead = getAllMockLeads()
+    .filter((lead) => lead.leadScore >= 80)
+    .sort((left, right) => right.leadScore - left.leadScore)[0];
+
   const patchDraft = (key: keyof Lead, value: string | number) => {
-    setDraft((current) => (current ? { ...current, [key]: value } : current));
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+      const next = { ...current, [key]: value };
+      if (key === "leadScore" || key === "status") {
+        next.confidence = resolveLeadConfidence(Number(next.leadScore), next.status);
+        next.aiNextAction = resolveAiNextAction(Number(next.leadScore));
+      }
+      return next;
+    });
   };
 
   const beginInlineEdit = (row: Lead) => {
     setEditingId(row.id);
     setDraft({ ...row });
+    setMenuAnchor(null);
   };
 
   const cancelInlineEdit = () => {
@@ -129,15 +150,7 @@ export const LeadsPage = () => {
       setRows((current) => current.map((row) => (row.id === saved.id ? saved : row)));
       cancelInlineEdit();
       dispatch(toastShown({ message: `${saved.leadId} updated.`, severity: "success" }));
-      const snapshot = getLeadKpis(getAllMockLeads());
-      setKpis((current) =>
-        current.map((metric) => {
-          if (metric.id === "qualified") return { ...metric, value: String(snapshot.qualified) };
-          if (metric.id === "disqualified") return { ...metric, value: String(snapshot.disqualified) };
-          if (metric.id === "score") return { ...metric, value: snapshot.averageScore.toFixed(1) };
-          return metric;
-        }),
-      );
+      setKpis(buildKpis(getAllMockLeads()));
     } catch (cause) {
       dispatch(toastShown({ message: getErrorMessage(cause), severity: "error" }));
     } finally {
@@ -145,14 +158,21 @@ export const LeadsPage = () => {
     }
   };
 
+  const announceAction = useCallback(
+    (action: string, lead: Lead) => {
+      dispatch(toastShown({ message: `${action} queued for ${lead.leadName}.`, severity: "info" }));
+    },
+    [dispatch],
+  );
+
   const columns = useMemo<ColumnDef<Lead>[]>(
     () => [
-      { accessorKey: "leadId", header: "Lead ID", size: 96, minSize: 80 },
+      { accessorKey: "leadId", header: "Lead ID", size: 104, minSize: 88 },
       {
         accessorKey: "leadName",
         header: "Lead Name",
-        size: 132,
-        minSize: 88,
+        size: 140,
+        minSize: 96,
         cell: ({ row, getValue }) =>
           editingId === row.original.id && draft ? (
             <InlineTextField
@@ -167,8 +187,8 @@ export const LeadsPage = () => {
       {
         accessorKey: "company",
         header: "Company",
-        size: 140,
-        minSize: 88,
+        size: 148,
+        minSize: 96,
         cell: ({ row, getValue }) =>
           editingId === row.original.id && draft ? (
             <InlineTextField
@@ -181,44 +201,10 @@ export const LeadsPage = () => {
           ),
       },
       {
-        accessorKey: "email",
-        header: "Email",
-        size: 168,
-        minSize: 110,
-        cell: ({ row, getValue }) =>
-          editingId === row.original.id && draft ? (
-            <InlineTextField
-              ariaLabel="Email"
-              type="email"
-              value={draft.email}
-              onChange={(value) => patchDraft("email", value)}
-            />
-          ) : (
-            String(getValue())
-          ),
-      },
-      {
-        accessorKey: "phone",
-        header: "Phone",
-        size: 128,
-        minSize: 96,
-        cell: ({ row, getValue }) =>
-          editingId === row.original.id && draft ? (
-            <InlineTextField
-              ariaLabel="Phone"
-              type="tel"
-              value={draft.phone}
-              onChange={(value) => patchDraft("phone", value)}
-            />
-          ) : (
-            String(getValue())
-          ),
-      },
-      {
         accessorKey: "leadSource",
         header: "Lead Source",
-        size: 112,
-        minSize: 88,
+        size: 120,
+        minSize: 96,
         cell: ({ row, getValue }) =>
           editingId === row.original.id && draft ? (
             <InlineSelectField
@@ -251,8 +237,8 @@ export const LeadsPage = () => {
       {
         accessorKey: "leadScore",
         header: "Lead Score",
-        size: 88,
-        minSize: 72,
+        size: 96,
+        minSize: 80,
         cell: ({ row, getValue }) =>
           editingId === row.original.id && draft ? (
             <InlineTextField
@@ -266,45 +252,91 @@ export const LeadsPage = () => {
           ),
       },
       {
-        accessorKey: "assignedTo",
-        header: "Assigned To",
-        size: 128,
-        minSize: 88,
-        cell: ({ row, getValue }) =>
-          editingId === row.original.id && draft ? (
-            <InlineSelectField
-              ariaLabel="Assigned to"
-              value={draft.assignedTo}
-              onChange={(value) => patchDraft("assignedTo", value)}
-              options={leadAssigneeOptions}
-            />
-          ) : (
-            String(getValue())
-          ),
+        id: "confidence",
+        header: "Confidence",
+        size: 148,
+        minSize: 120,
+        accessorFn: (row) => row.confidence ?? resolveLeadConfidence(row.leadScore, row.status),
+        cell: ({ getValue }) => {
+          const value = Number(getValue());
+          return (
+            <Stack direction="row" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+              <Typography variant="body2" sx={{ minWidth: 36 }}>
+                {value}%
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={value}
+                sx={{
+                  flex: 1,
+                  height: 4,
+                  "& .MuiLinearProgress-bar": {
+                    bgcolor: value >= 80 ? "success.main" : "warning.main",
+                  },
+                }}
+              />
+            </Stack>
+          );
+        },
       },
       {
-        accessorKey: "createdDate",
-        header: "Created Date",
-        size: 120,
-        minSize: 96,
-        cell: ({ getValue }) => formatDate(String(getValue())),
+        id: "aiNextAction",
+        header: "AI Next Action",
+        size: 188,
+        minSize: 160,
+        accessorFn: (row) => row.aiNextAction ?? resolveAiNextAction(row.leadScore),
+        cell: ({ row, getValue }) => (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<BoltIcon fontSize="small" />}
+            onClick={() => announceAction(String(getValue()), row.original)}
+            sx={{
+              borderColor: "primary.main",
+              color: "primary.light",
+              letterSpacing: "0.06em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {String(getValue())}
+          </Button>
+        ),
       },
     ],
-    [draft, editingId],
+    [announceAction, draft, editingId],
   );
 
   return (
     <Stack gap={2.25}>
       <PageHeader
-        title="Leads"
-        description="CRM · operational worklist with role-aware actions and audit-ready documents."
-        badge={<StatusChip label="Live" tone="info" />}
+        eyebrow="Terminal > CRM & Customer Engagement"
+        title="Lead Management"
+        uppercase
         actions={
-          <PermissionGate permission={PERMISSIONS.crm.leads.create}>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate(ROUTES.crm.leadNew)}>
-              New
-            </Button>
-          </PermissionGate>
+          <Stack direction="row" gap={1} alignItems="center">
+            <PermissionGate permission={PERMISSIONS.crm.leads.create}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate(ROUTES.crm.leadNew)}
+                sx={{
+                  letterSpacing: "0.08em",
+                  boxShadow: (theme) => `0 0 22px ${alpha(theme.palette.primary.main, 0.45)}`,
+                }}
+              >
+                NEW LEAD
+              </Button>
+            </PermissionGate>
+            <Tooltip title="Worklist settings">
+              <IconButton
+                aria-label="Worklist settings"
+                onClick={() => navigate(ROUTES.settings)}
+                sx={{ width: 40, height: 40, border: 1, borderColor: "divider", borderRadius: 1.5 }}
+              >
+                <SettingsOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         }
       />
 
@@ -312,7 +344,7 @@ export const LeadsPage = () => {
         sx={{
           display: "grid",
           gap: 1.5,
-          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", xl: "repeat(4, minmax(0, 1fr))" },
+          gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" },
         }}
       >
         {kpis.map((metric) => (
@@ -320,9 +352,15 @@ export const LeadsPage = () => {
         ))}
       </Stack>
 
+      {featuredLead ? (
+        <HighValueLeadCard
+          leadName={featuredLead.leadName}
+          leadScore={featuredLead.leadScore}
+          onStart={() => announceAction("START ENGAGEMENT", featuredLead)}
+        />
+      ) : null}
+
       <DataTable
-        title="Leads Worklist"
-        subtitle="Track, qualify and process incoming CRM leads."
         columns={columns}
         data={rows}
         total={total}
@@ -332,8 +370,9 @@ export const LeadsPage = () => {
         sorting={sorting}
         loading={loading}
         error={error}
-        enableSelection
-        revealActionsOnHover
+        variant="cards"
+        paginationStyle="count"
+        revealActionsOnHover={false}
         alwaysRevealActions={(row) => row.id === editingId}
         searchPlaceholder="Search records..."
         onSearchChange={tableState.setSearch}
@@ -388,47 +427,73 @@ export const LeadsPage = () => {
               </Tooltip>
             </Stack>
           ) : (
-            <Stack direction="row">
-              <Tooltip title="View">
-                <IconButton
-                  aria-label={`View ${row.leadId}`}
-                  size="small"
-                  onClick={() => navigate(ROUTES.crm.leadView(row.id))}
-                >
-                  <VisibilityOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <PermissionGate permission={PERMISSIONS.crm.leads.update}>
-                <Tooltip title="Edit inline">
-                  <IconButton aria-label={`Edit ${row.leadId}`} size="small" onClick={() => beginInlineEdit(row)}>
-                    <EditOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </PermissionGate>
-              <PermissionGate permission={PERMISSIONS.crm.leads.delete}>
-                <Tooltip title="Delete">
-                  <IconButton aria-label={`Delete ${row.leadId}`} size="small" onClick={() => setPendingDelete(row)}>
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </PermissionGate>
-              <PermissionGate permission={PERMISSIONS.crm.leads.print}>
-                <Tooltip title="Print">
-                  <IconButton
-                    aria-label={`Print ${row.leadId}`}
-                    size="small"
-                    onClick={() =>
-                      dispatch(toastShown({ message: "Print engine is reserved for a later phase.", severity: "info" }))
-                    }
-                  >
-                    <PrintOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </PermissionGate>
-            </Stack>
+            <Tooltip title="Row actions">
+              <IconButton
+                aria-label={`Actions for ${row.leadId}`}
+                size="small"
+                onClick={(event: MouseEvent<HTMLElement>) => setMenuAnchor({ element: event.currentTarget, row })}
+              >
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )
         }
       />
+
+      <Menu
+        anchorEl={menuAnchor?.element}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem
+          onClick={() => {
+            if (menuAnchor) {
+              navigate(ROUTES.crm.leadView(menuAnchor.row.id));
+            }
+          }}
+        >
+          <VisibilityOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+          View
+        </MenuItem>
+        <PermissionGate permission={PERMISSIONS.crm.leads.update}>
+          <MenuItem
+            onClick={() => {
+              if (menuAnchor) {
+                beginInlineEdit(menuAnchor.row);
+              }
+            }}
+          >
+            <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+            Edit inline
+          </MenuItem>
+        </PermissionGate>
+        <PermissionGate permission={PERMISSIONS.crm.leads.print}>
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              dispatch(toastShown({ message: "Print engine is reserved for a later phase.", severity: "info" }));
+            }}
+          >
+            <PrintOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+            Print
+          </MenuItem>
+        </PermissionGate>
+        <PermissionGate permission={PERMISSIONS.crm.leads.delete}>
+          <MenuItem
+            onClick={() => {
+              if (menuAnchor) {
+                setPendingDelete(menuAnchor.row);
+                setMenuAnchor(null);
+              }
+            }}
+          >
+            <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} />
+            Delete
+          </MenuItem>
+        </PermissionGate>
+      </Menu>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}

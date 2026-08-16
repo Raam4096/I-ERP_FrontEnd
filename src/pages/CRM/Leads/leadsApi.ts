@@ -4,7 +4,14 @@ import { ERROR_CODES } from "@/constants/errorCodes";
 import type { ApiPaginatedSuccess, ListQuery } from "@/models/common/api";
 import { NormalizedApiError } from "@/models/common/api";
 import type { Lead, LeadDraft } from "@/models/lead/lead";
+import { resolveAiNextAction, resolveLeadConfidence } from "@/models/lead/lead";
 import { leadRecords } from "./leads.mock";
+
+const enrichLead = (lead: Lead): Lead => ({
+  ...lead,
+  confidence: lead.confidence ?? resolveLeadConfidence(lead.leadScore, lead.status),
+  aiNextAction: lead.aiNextAction ?? resolveAiNextAction(lead.leadScore),
+});
 
 let localLeads = [...leadRecords];
 
@@ -36,7 +43,7 @@ const applyListQuery = (items: Lead[], query: ListQuery): ApiPaginatedSuccess<Le
   const page = query.page ?? 1;
   const pageSize = query.pageSize ?? 20;
   const start = (page - 1) * pageSize;
-  const data = sorted.slice(start, start + pageSize);
+  const data = sorted.slice(start, start + pageSize).map(enrichLead);
 
   return {
     success: true,
@@ -67,7 +74,7 @@ export const getLead = async (id: string): Promise<Lead> => {
     if (!match) {
       throw new NormalizedApiError(ERROR_CODES.NOT_FOUND, "Lead was not found.", 404);
     }
-    return match;
+    return enrichLead(match);
   }
 
   const response = await http.get(API_ENDPOINTS.leads.byId(id));
@@ -88,6 +95,8 @@ export const createLead = async (draft: LeadDraft): Promise<Lead> => {
       leadSource: draft.leadSource || "Website",
       status: draft.status,
       leadScore: 40,
+      confidence: resolveLeadConfidence(40, draft.status),
+      aiNextAction: resolveAiNextAction(40),
       assignedTo: draft.assignedTo || "Unassigned",
       createdDate: new Date().toISOString().slice(0, 10),
       industry: draft.industry,
@@ -98,6 +107,9 @@ export const createLead = async (draft: LeadDraft): Promise<Lead> => {
       address: draft.address,
       subsidiary: draft.subsidiary,
       notes: draft.notes,
+      followUpDate: draft.followUpDate,
+      followUpType: draft.followUpType,
+      followUpNotes: draft.followUpNotes,
     };
     localLeads = [created, ...localLeads];
     return created;
@@ -131,6 +143,9 @@ export const updateLead = async (id: string, draft: LeadDraft): Promise<Lead> =>
       address: draft.address,
       subsidiary: draft.subsidiary,
       notes: draft.notes,
+      followUpDate: draft.followUpDate,
+      followUpType: draft.followUpType,
+      followUpNotes: draft.followUpNotes,
     };
     localLeads = localLeads.map((lead, leadIndex) => (leadIndex === index ? updated : lead));
     return updated;

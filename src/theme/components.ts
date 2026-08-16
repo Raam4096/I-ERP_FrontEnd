@@ -27,7 +27,7 @@ export const components: Components<Theme> = {
         backgroundImage: "none",
         backgroundColor: theme.palette.background.paper,
         border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 14,
+        borderRadius: 16,
       }),
     },
   },
@@ -37,7 +37,7 @@ export const components: Components<Theme> = {
         backgroundImage: "none",
         backgroundColor: theme.palette.background.paper,
         border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 14,
+        borderRadius: 16,
         boxShadow: "none",
       }),
     },
@@ -70,6 +70,16 @@ export const components: Components<Theme> = {
       root: {
         borderRadius: 10,
       },
+    },
+  },
+  MuiInputLabel: {
+    styleOverrides: {
+      root: ({ theme }) => ({
+        "&.MuiInputLabel-shrink": {
+          backgroundColor: theme.palette.background.paper,
+          paddingInline: 4,
+        },
+      }),
     },
   },
   MuiTextField: {

@@ -13,7 +13,7 @@ export const leadAssigneeOptions = ["Priya Sharma", "Liam Walker", "Arjun Rao"].
   label: value,
 }));
 
-export const leadIndustryOptions = [
+const predefinedIndustries = [
   "Technology",
   "Logistics",
   "Retail",
@@ -21,7 +21,39 @@ export const leadIndustryOptions = [
   "Marine",
   "Construction",
   "Manufacturing",
-].map((value) => ({ value, label: value }));
+  "Healthcare",
+  "Finance",
+  "Education",
+  "Hospitality",
+  "Telecommunications",
+  "Agriculture",
+  "Real Estate",
+  "Automotive",
+];
+
+const customIndustries: string[] = [];
+
+const toOptions = (values: string[]) => values.map((value) => ({ value, label: value }));
+
+export const getLeadIndustryOptions = () => toOptions([...predefinedIndustries, ...customIndustries]);
+
+export const addCustomIndustry = (name: string): string => {
+  const next = name.trim();
+  const exists = [...predefinedIndustries, ...customIndustries].some(
+    (item) => item.toLowerCase() === next.toLowerCase(),
+  );
+  if (!exists && next) {
+    customIndustries.push(next);
+  }
+  return next;
+};
+
+export const leadIndustryOptions = getLeadIndustryOptions();
+
+export const leadFollowUpTypeOptions = ["Call", "Email", "Meeting", "Site Visit"].map((value) => ({
+  value,
+  label: value,
+}));
 
 export const leadProjectOptions = ["Implementation", "Expansion", "Upgrade", "Greenfield", "Assessment"].map(
   (value) => ({ value, label: value }),

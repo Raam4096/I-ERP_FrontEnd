@@ -1,13 +1,15 @@
-import { Button, Stack } from "@mui/material";
+import { Stack } from "@mui/material";
 import { useMemo, useState } from "react";
-import { FieldGrid, SelectField, TextFieldControl } from "@/components/forms/fields";
+import { CreatableSelectField, FieldGrid, SelectField, TextFieldControl } from "@/components/forms/fields";
 import { FormSection } from "@/components/forms/FormSection";
 import type { LeadStatus } from "@/constants/statuses";
 import type { LeadDraft } from "@/models/lead/lead";
 import { isBlank, isValidEmail } from "@/utils/validators/required";
 import {
+  addCustomIndustry,
+  getLeadIndustryOptions,
   leadAssigneeOptions,
-  leadIndustryOptions,
+  leadFollowUpTypeOptions,
   leadProjectOptions,
   leadRevenueOptions,
   leadSizeOptions,
@@ -16,16 +18,18 @@ import {
   leadSubsidiaryOptions,
 } from "./leadOptions";
 
+export const LEAD_FORM_ID = "lead-editor-form";
+
 interface LeadFormProps {
   value: LeadDraft;
   submitting?: boolean;
   onChange: (value: LeadDraft) => void;
   onSubmit: () => void;
-  onCancel: () => void;
 }
 
-export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: LeadFormProps) => {
+export const LeadForm = ({ value, submitting, onChange, onSubmit }: LeadFormProps) => {
   const [attempted, setAttempted] = useState(false);
+  const [industryOptions, setIndustryOptions] = useState(getLeadIndustryOptions);
 
   const errors = useMemo(() => {
     const next: Partial<Record<keyof LeadDraft, string>> = {};
@@ -40,7 +44,21 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
   const patch = (key: keyof LeadDraft, next: string) => onChange({ ...value, [key]: next });
 
   return (
-    <Stack gap={2} component="form" onSubmit={(event) => event.preventDefault()}>
+    <Stack
+      gap={2}
+      component="form"
+      id={LEAD_FORM_ID}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (submitting) {
+          return;
+        }
+        setAttempted(true);
+        if (Object.keys(errors).length === 0) {
+          onSubmit();
+        }
+      }}
+    >
       <FormSection title="Primary Information" description="Capture the essential lead details.">
         <FieldGrid>
           <TextFieldControl
@@ -77,12 +95,18 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
             onChange={(next) => patch("email", next)}
             error={attempted ? errors.email : undefined}
           />
-          <SelectField
+          <CreatableSelectField
             name="industry"
             label="Industry"
             value={value.industry}
             onChange={(next) => patch("industry", next)}
-            options={leadIndustryOptions}
+            options={industryOptions}
+            createTitle="Add industry"
+            onCreateOption={(name) => {
+              const created = addCustomIndustry(name);
+              setIndustryOptions(getLeadIndustryOptions());
+              patch("industry", created);
+            }}
           />
           <SelectField
             name="projectType"
@@ -90,6 +114,7 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
             value={value.projectType}
             onChange={(next) => patch("projectType", next)}
             options={leadProjectOptions}
+            includeEmpty
           />
           <SelectField
             name="leadSource"
@@ -97,6 +122,7 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
             value={value.leadSource}
             onChange={(next) => patch("leadSource", next)}
             options={leadSourceOptions}
+            includeEmpty
           />
           <SelectField
             name="status"
@@ -111,6 +137,7 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
             value={value.assignedTo}
             onChange={(next) => patch("assignedTo", next)}
             options={leadAssigneeOptions}
+            includeEmpty
           />
           <TextFieldControl
             name="website"
@@ -125,6 +152,7 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
             value={value.companySize}
             onChange={(next) => patch("companySize", next)}
             options={leadSizeOptions}
+            includeEmpty
           />
           <SelectField
             name="annualRevenue"
@@ -132,6 +160,7 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
             value={value.annualRevenue}
             onChange={(next) => patch("annualRevenue", next)}
             options={leadRevenueOptions}
+            includeEmpty
           />
         </FieldGrid>
         <TextFieldControl
@@ -146,17 +175,28 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
         />
       </FormSection>
 
-      <FormSection title="Classification" description="Map the lead to the correct subsidiary.">
+      <FormSection
+        title="Classification"
+        description="Map the lead to the correct subsidiary."
+        collapsible
+        defaultExpanded={false}
+      >
         <SelectField
           name="subsidiary"
           label="Subsidiary"
           value={value.subsidiary}
           onChange={(next) => patch("subsidiary", next)}
           options={leadSubsidiaryOptions}
+          includeEmpty
         />
       </FormSection>
 
-      <FormSection title="Additional Information" description="Capture context, scope and notes.">
+      <FormSection
+        title="Additional Information"
+        description="Capture context, scope and notes."
+        collapsible
+        defaultExpanded={false}
+      >
         <TextFieldControl
           name="notes"
           label="Notes"
@@ -167,23 +207,38 @@ export const LeadForm = ({ value, submitting, onChange, onSubmit, onCancel }: Le
         />
       </FormSection>
 
-      <Stack direction="row" justifyContent="flex-end" gap={1}>
-        <Button variant="outlined" onClick={onCancel} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          disabled={submitting}
-          onClick={() => {
-            setAttempted(true);
-            if (Object.keys(errors).length === 0) {
-              onSubmit();
-            }
-          }}
-        >
-          Save
-        </Button>
-      </Stack>
+      <FormSection
+        title="Follow-ups"
+        description="Optional next action for this lead. These fields are not required."
+        collapsible
+        defaultExpanded={false}
+      >
+        <FieldGrid>
+          <TextFieldControl
+            name="followUpDate"
+            label="Next Follow-up Date"
+            type="date"
+            value={value.followUpDate}
+            onChange={(next) => patch("followUpDate", next)}
+          />
+          <SelectField
+            name="followUpType"
+            label="Follow-up Type"
+            value={value.followUpType}
+            onChange={(next) => patch("followUpType", next)}
+            options={leadFollowUpTypeOptions}
+            includeEmpty
+          />
+        </FieldGrid>
+        <TextFieldControl
+          name="followUpNotes"
+          label="Follow-up Notes"
+          multiline
+          minRows={3}
+          value={value.followUpNotes}
+          onChange={(next) => patch("followUpNotes", next)}
+        />
+      </FormSection>
     </Stack>
   );
 };

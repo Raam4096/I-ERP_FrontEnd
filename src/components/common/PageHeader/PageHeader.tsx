@@ -7,9 +7,10 @@ interface PageHeaderProps {
   eyebrow?: string;
   badge?: ReactNode;
   actions?: ReactNode;
+  uppercase?: boolean;
 }
 
-export const PageHeader = ({ title, description, eyebrow, badge, actions }: PageHeaderProps) => (
+export const PageHeader = ({ title, description, eyebrow, badge, actions, uppercase }: PageHeaderProps) => (
   <Stack
     direction={{ xs: "column", sm: "row" }}
     justifyContent="space-between"
@@ -19,12 +20,21 @@ export const PageHeader = ({ title, description, eyebrow, badge, actions }: Page
   >
     <Box>
       {eyebrow ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mb: 0.5, letterSpacing: "0.12em", textTransform: "uppercase" }}
+        >
           {eyebrow}
         </Typography>
       ) : null}
       <Stack direction="row" alignItems="center" gap={1.25}>
-        <Typography variant="h1">{title}</Typography>
+        <Typography
+          variant="h1"
+          sx={uppercase ? { textTransform: "uppercase", letterSpacing: "0.04em" } : undefined}
+        >
+          {title}
+        </Typography>
         {badge}
       </Stack>
       {description ? (

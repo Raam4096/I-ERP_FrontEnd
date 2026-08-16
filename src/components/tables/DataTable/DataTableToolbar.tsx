@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import { SearchInput } from "@/components/common/SearchInput/SearchInput";
 
@@ -29,13 +29,10 @@ export const DataTableToolbar = ({
     sx={{ mb: 2 }}
   >
     <BoxCopy title={title} subtitle={subtitle} />
-    <Stack
-      direction={{ xs: "column", sm: "row" }}
-      gap={1}
-      alignItems={{ sm: "center" }}
-      sx={{ width: { xs: "100%", md: "auto" }, minWidth: { md: 280 }, maxWidth: { md: 460 } }}
-    >
+    <Box sx={{ flex: 1, maxWidth: { md: 360 } }}>
       <SearchInput value={search} onChange={onSearchChange} placeholder={searchPlaceholder} />
+    </Box>
+    <Stack direction="row" gap={1} alignItems="center" sx={{ ml: { md: "auto" } }}>
       {filters}
       {extras}
     </Stack>

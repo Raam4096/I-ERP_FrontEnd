@@ -68,6 +68,8 @@ export interface DataTableProps<T> {
   enableVirtualization?: boolean;
   virtualizeThreshold?: number;
   enableColumnResize?: boolean;
+  variant?: "default" | "cards";
+  paginationStyle?: "range" | "count";
 }
 
 export const DataTable = <T,>({
@@ -100,6 +102,8 @@ export const DataTable = <T,>({
   enableVirtualization = false,
   virtualizeThreshold = 80,
   enableColumnResize = true,
+  variant = "default",
+  paginationStyle = "range",
 }: DataTableProps<T>) => {
   const tableColumns = useMemo<ColumnDef<T, unknown>[]>(() => {
     const selectionColumn: ColumnDef<T, unknown> = {
@@ -205,7 +209,8 @@ export const DataTable = <T,>({
     : undefined;
 
   const rows = table.getRowModel().rows;
-  const shouldVirtualize = enableVirtualization || rows.length >= virtualizeThreshold;
+  const isCards = variant === "cards";
+  const shouldVirtualize = !isCards && (enableVirtualization || rows.length >= virtualizeThreshold);
   const parentRef = useRef<HTMLDivElement | null>(null);
   const virtualizer = useVirtualizer({
     count: shouldVirtualize ? rows.length : 0,
@@ -215,7 +220,7 @@ export const DataTable = <T,>({
   });
 
   return (
-    <Paper sx={{ p: { xs: 1.5, md: 2.25 } }}>
+    <Paper sx={{ p: { xs: 1.5, md: isCards ? 2.5 : 2.25 }, borderRadius: isCards ? 2.5 : undefined }}>
       <DataTableToolbar
         title={title}
         subtitle={subtitle}
@@ -237,13 +242,42 @@ export const DataTable = <T,>({
           }}
         >
           <Table
-            stickyHeader
+            stickyHeader={!isCards}
             size="small"
-            sx={{
+            sx={(theme) => ({
               tableLayout: "fixed",
               width: table.getTotalSize(),
               minWidth: "100%",
-            }}
+              ...(isCards
+                ? {
+                    borderCollapse: "separate",
+                    borderSpacing: "0 10px",
+                    "& .MuiTableHead-root .MuiTableCell-root": {
+                      backgroundColor: "transparent",
+                      borderBottom: 0,
+                      pb: 0,
+                    },
+                    "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root": {
+                      borderBottom: 0,
+                      backgroundColor: theme.palette.chrome.input,
+                      py: 1.75,
+                    },
+                    "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root:first-of-type": {
+                      borderTopLeftRadius: 12,
+                      borderBottomLeftRadius: 12,
+                      boxShadow: `inset 1px 0 0 ${theme.palette.divider}, inset 0 1px 0 ${theme.palette.divider}, inset 0 -1px 0 ${theme.palette.divider}`,
+                    },
+                    "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root:last-of-type": {
+                      borderTopRightRadius: 12,
+                      borderBottomRightRadius: 12,
+                      boxShadow: `inset -1px 0 0 ${theme.palette.divider}, inset 0 1px 0 ${theme.palette.divider}, inset 0 -1px 0 ${theme.palette.divider}`,
+                    },
+                    "& .MuiTableBody-root .MuiTableRow-root .MuiTableCell-root:not(:first-of-type):not(:last-of-type)": {
+                      boxShadow: `inset 0 1px 0 ${theme.palette.divider}, inset 0 -1px 0 ${theme.palette.divider}`,
+                    },
+                  }
+                : {}),
+            })}
           >
             <TableHead>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -374,7 +408,13 @@ export const DataTable = <T,>({
         </TableContainer>
       )}
 
-      <DataTablePagination page={page} pageSize={pageSize} total={total} onPageChange={onPageChange} />
+      <DataTablePagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={onPageChange}
+        style={paginationStyle}
+      />
     </Paper>
   );
 };

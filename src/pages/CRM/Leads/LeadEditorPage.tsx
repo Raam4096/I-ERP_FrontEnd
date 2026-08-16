@@ -1,3 +1,6 @@
+import CloseIcon from "@mui/icons-material/Close";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import { Button, Stack } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ErrorState } from "@/components/common/ErrorState/ErrorState";
@@ -8,7 +11,7 @@ import { emptyLeadDraft, type LeadDraft } from "@/models/lead/lead";
 import { toastShown } from "@/redux/features/ui/uiSlice";
 import { useAppDispatch } from "@/redux/hooks";
 import { getErrorMessage } from "@/utils/errorHandling/getErrorMessage";
-import { LeadForm } from "./LeadForm";
+import { LEAD_FORM_ID, LeadForm } from "./LeadForm";
 import { createLead, getLead, updateLead } from "./leadsApi";
 
 interface LeadEditorPageProps {
@@ -49,6 +52,9 @@ export const LeadEditorPage = ({ mode }: LeadEditorPageProps) => {
           address: lead.address ?? "",
           subsidiary: lead.subsidiary ?? "",
           notes: lead.notes ?? "",
+          followUpDate: lead.followUpDate ?? "",
+          followUpType: lead.followUpType ?? "",
+          followUpNotes: lead.followUpNotes ?? "",
         });
       } catch (cause) {
         setError(getErrorMessage(cause));
@@ -85,20 +91,31 @@ export const LeadEditorPage = ({ mode }: LeadEditorPageProps) => {
     <>
       <PageHeader
         eyebrow="TERMINAL · CRM & CUSTOMER ENGAGEMENT"
-        title={mode === "create" ? "Contact Information" : "Edit Lead"}
-        description={
-          mode === "create"
-            ? "Create a CRM lead with role-aware capture fields."
-            : "Update an existing lead without leaving the operational worklist pattern."
+        title="Contact Information"
+        uppercase
+        actions={
+          <Stack direction="row" gap={1}>
+            <Button
+              variant="contained"
+              startIcon={<SaveOutlinedIcon />}
+              type="submit"
+              form={LEAD_FORM_ID}
+              disabled={submitting}
+            >
+              Save
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<CloseIcon />}
+              onClick={() => navigate(ROUTES.crm.leads)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+          </Stack>
         }
       />
-      <LeadForm
-        value={draft}
-        submitting={submitting}
-        onChange={setDraft}
-        onSubmit={() => void save()}
-        onCancel={() => navigate(ROUTES.crm.leads)}
-      />
+      <LeadForm value={draft} submitting={submitting} onChange={setDraft} onSubmit={() => void save()} />
     </>
   );
 };

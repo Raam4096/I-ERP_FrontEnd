@@ -23,7 +23,7 @@ export const ThemeToggle = () => {
           height: 40,
           border: 1,
           borderColor: "divider",
-          borderRadius: "50%",
+          borderRadius: 1.5,
         }}
       >
         {themeMode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}

@@ -14,7 +14,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { Sidebar } from "../Sidebar/Sidebar";
 import { Topbar } from "../Topbar/Topbar";
 
-const EXPANDED_WIDTH = 248;
+const EXPANDED_WIDTH = 284;
 const COLLAPSED_WIDTH = 80;
 
 export const AppLayout = () => {
@@ -76,8 +76,19 @@ export const AppLayout = () => {
 
       <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Topbar onMenuClick={() => dispatch(mobileNavOpened(true))} />
-        <Box component="main" sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, md: 2.5 } }}>
-          <Outlet />
+        <Box component="main" sx={{ flex: 1, minWidth: 0, p: { xs: 1.25, md: 1.75 } }}>
+          <Box
+            sx={{
+              minHeight: { md: "calc(100vh - 104px)" },
+              borderRadius: 2.5,
+              border: 1,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+              p: { xs: 1.75, md: 2.5 },
+            }}
+          >
+            <Outlet />
+          </Box>
         </Box>
       </Box>
 
@@ -88,7 +99,7 @@ export const AppLayout = () => {
           onClick={() =>
             dispatch(toastShown({ message: "AI Control Room is reserved for a later phase.", severity: "info" }))
           }
-          sx={{ position: "fixed", right: 24, bottom: 24 }}
+          sx={{ position: "fixed", right: 24, bottom: 24, borderRadius: 2 }}
         >
           <SmartToyOutlinedIcon />
         </Fab>

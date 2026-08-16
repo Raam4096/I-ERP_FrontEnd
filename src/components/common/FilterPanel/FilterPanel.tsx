@@ -17,7 +17,7 @@ export const FilterPanel = ({ children, onClear }: FilterPanelProps) => {
         startIcon={<FilterListIcon />}
         onClick={(event) => setAnchor(event.currentTarget)}
       >
-        Filter
+        FILTER
       </Button>
       <Popover
         open={Boolean(anchor)}

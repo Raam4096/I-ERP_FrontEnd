@@ -1,5 +1,6 @@
 import LogoutIcon from "@mui/icons-material/Logout";
-import { Avatar, Box, IconButton, List, Stack, Tooltip, Typography } from "@mui/material";
+import { Avatar, Box, Button, List, Stack, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useAuth } from "@/hooks/useAuth";
 import { navigationItems } from "./navigationConfig";
 import { SidebarItem } from "./SidebarItem";
@@ -24,29 +25,30 @@ export const Sidebar = ({ collapsed, onSignOut }: SidebarProps) => {
         borderColor: "chrome.sidebarBorder",
       }}
     >
-      <Stack direction="row" alignItems="center" gap={1.25} sx={{ px: collapsed ? 1.25 : 2, py: 2 }}>
+      <Stack direction="row" alignItems="center" gap={1.25} sx={{ px: collapsed ? 1.25 : 2, py: 2.25 }}>
         <Box
           sx={{
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             borderRadius: 1.5,
-            border: 1,
-            borderColor: "chrome.sidebarBorder",
+            bgcolor: "primary.main",
+            color: "primary.contrastText",
             display: "grid",
             placeItems: "center",
-            color: "primary.light",
             fontWeight: 800,
+            fontSize: "1.15rem",
             flexShrink: 0,
+            boxShadow: (theme) => `0 0 18px ${alpha(theme.palette.primary.main, 0.55)}`,
           }}
         >
           i
         </Box>
         {!collapsed ? (
           <Box>
-            <Typography variant="subtitle2" sx={{ letterSpacing: "0.14em", color: "chrome.sidebarText" }}>
-              I-ERP
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: "0.08em", lineHeight: 1.1 }}>
+              ERP
             </Typography>
-            <Typography variant="caption" sx={{ color: "chrome.sidebarMuted" }}>
+            <Typography variant="caption" sx={{ color: "chrome.sidebarText", letterSpacing: "0.18em" }}>
               INTELLIGENT
             </Typography>
           </Box>
@@ -60,33 +62,77 @@ export const Sidebar = ({ collapsed, onSignOut }: SidebarProps) => {
       </List>
 
       <Stack
-        direction="row"
-        alignItems="center"
-        gap={1}
+        gap={1.25}
         sx={{
           p: collapsed ? 1.25 : 1.75,
           borderTop: 1,
           borderColor: "chrome.sidebarBorder",
         }}
       >
-        <Avatar sx={{ width: 34, height: 34, bgcolor: "primary.main", fontSize: 13 }}>
-          {user?.initials ?? "AM"}
-        </Avatar>
-        {!collapsed ? (
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="subtitle2" noWrap sx={{ color: "chrome.sidebarText" }}>
-              {user?.displayName ?? "Aarav Mehta"}
-            </Typography>
-            <Typography variant="caption" noWrap sx={{ color: "chrome.sidebarMuted" }}>
-              {user?.roleName ?? "Operations Controller"}
-            </Typography>
-          </Box>
-        ) : null}
-        <Tooltip title="Sign out">
-          <IconButton aria-label="Sign out" size="small" onClick={onSignOut} sx={{ color: "chrome.sidebarMuted" }}>
+        <Stack direction="row" alignItems="center" gap={1.25}>
+          <Avatar
+            sx={{
+              width: 36,
+              height: 36,
+              bgcolor: "primary.dark",
+              fontSize: 14,
+              fontWeight: 700,
+              borderRadius: 1.5,
+            }}
+          >
+            {user?.initials ?? "AM"}
+          </Avatar>
+          {!collapsed ? (
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="subtitle2" noWrap sx={{ color: "chrome.sidebarText", fontWeight: 800 }}>
+                {user?.displayName ?? "Aarav Mehta"}
+              </Typography>
+              <Stack direction="row" alignItems="center" gap={0.75}>
+                <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "success.main" }} />
+                <Typography
+                  variant="caption"
+                  noWrap
+                  sx={{ color: "success.main", letterSpacing: "0.1em", textTransform: "uppercase" }}
+                >
+                  {user?.roleName ?? "Global Admin"}
+                </Typography>
+              </Stack>
+            </Box>
+          ) : null}
+        </Stack>
+        {collapsed ? (
+          <Button
+            aria-label="Sign out"
+            variant="outlined"
+            onClick={onSignOut}
+            sx={{
+              minWidth: 0,
+              px: 1,
+              color: "chrome.sidebarMuted",
+              borderColor: "chrome.sidebarBorder",
+            }}
+          >
             <LogoutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<LogoutIcon />}
+            onClick={onSignOut}
+            sx={{
+              color: "chrome.sidebarMuted",
+              borderColor: "chrome.sidebarBorder",
+              letterSpacing: "0.12em",
+              "&:hover": {
+                borderColor: "chrome.borderStrong",
+                bgcolor: "chrome.sidebarHover",
+              },
+            }}
+          >
+            SIGN OUT
+          </Button>
+        )}
       </Stack>
     </Box>
   );
